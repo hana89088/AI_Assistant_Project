@@ -7,6 +7,7 @@ import asyncio
 import json
 import os
 import sys
+import tempfile
 from datetime import datetime
 import speech_recognition as sr
 import websockets
@@ -231,19 +232,31 @@ class AIAssistant:
                     model="eleven_monolingual_v1"
                 )
                 
-                # Save audio temporarily
-                audio_path = "temp_audio.mp3"
-                with open(audio_path, 'wb') as f:
-                    f.write(audio)
-                    
+                # Save audio to a unique temporary file
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp_file:
+                    tmp_file.write(audio)
+                    audio_path = tmp_file.name
+
                 # Send audio path to client
                 await self.broadcast({
                     "type": "audio",
                     "path": audio_path
                 })
-                
+
+                # Schedule deletion of the temporary file
+                asyncio.create_task(self.delete_temp_file(audio_path))
+
             except Exception as e:
                 logger.error(f"TTS generation error: {e}")
+
+    async def delete_temp_file(self, path, delay: int = 30):
+        """Remove a temporary file after an optional delay."""
+        await asyncio.sleep(delay)
+        try:
+            os.remove(path)
+            logger.info(f"Deleted temporary audio file: {path}")
+        except OSError as e:
+            logger.error(f"Error deleting temp audio file {path}: {e}")
                 
 async def main():
     """Main application entry point"""

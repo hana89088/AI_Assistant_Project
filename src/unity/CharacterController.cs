@@ -256,8 +256,11 @@ public class CharacterController : MonoBehaviour
     {
         if (audioSource == null) yield break;
 
+        // Ensure the path is a valid file URL
+        string url = audioPath.StartsWith("file://") ? audioPath : $"file://{audioPath}";
+
         // Load audio file
-        using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip($"file:///{audioPath}", AudioType.MPEG))
+        using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip(url, AudioType.MPEG))
         {
             yield return www.SendWebRequest();
 
