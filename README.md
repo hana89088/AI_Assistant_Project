@@ -1,4 +1,4 @@
-﻿# AI Assistant with 3D Anime Model
+# AI Assistant with 3D Anime Model
 
 ## Setup Instructions
 
@@ -11,15 +11,15 @@
    - Add your API keys
 
 3. **Install Python Dependencies**
-   `ash
+   ash
    cd AI_Assistant_Project
    python -m venv venv
-   .\venv\Scripts\activate
+   .\\venv\\Scripts\\activate
    pip install -r requirements.txt
    `
 
 4. **Install Node Dependencies**
-   `ash
+   ash
    cd src/electron
    npm install
    `
@@ -31,17 +31,29 @@
 ## Running the Project
 
 1. Start the Python backend:
-   `ash
+   ash
    python src/python/main.py
    `
 
 2. Open Unity project in src/unity
 
 3. Run Electron app:
-   `ash
+   ash
    cd src/electron
    npm start
    `
+
+### Running Without a GUI
+
+For a simple text or voice chat interface without Unity or Electron, run:
+
+```
+python src/python/cli_chat.py
+```
+
+Follow the prompts to talk by typing or using your microphone. Responses are
+printed in the terminal and, when an ElevenLabs API key is configured, also
+spoken aloud.
 
 ## Project Structure
 - /src/python - AI backend and voice processing
