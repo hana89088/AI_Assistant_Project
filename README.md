@@ -11,18 +11,18 @@
    - Add your API keys
 
 3. **Install Python Dependencies**
-   ash
+   ```bash
    cd AI_Assistant_Project
    python -m venv venv
-   .\\venv\\Scripts\\activate
+   .\venv\Scripts\activate
    pip install -r requirements.txt
-   `
+   ```
 
 4. **Install Node Dependencies**
-   ash
+   ```bash
    cd src/electron
    npm install
-   `
+   ```
 
 5. **Download Live2D SDK**
    - Visit https://www.live2d.com/en/download/cubism-sdk/
@@ -31,23 +31,23 @@
 ## Running the Project
 
 1. Start the Python backend:
-   ash
+   ```bash
    python src/python/main.py
-   `
+   ```
 
 2. Open Unity project in src/unity
 
 3. Run Electron app:
-   ash
+   ```bash
    cd src/electron
    npm start
-   `
+   ```
 
 ### Running Without a GUI
 
 For a simple text or voice chat interface without Unity or Electron, run:
 
-```
+```bash
 python src/python/cli_chat.py
 ```
 
