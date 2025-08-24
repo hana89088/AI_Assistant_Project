@@ -9,6 +9,7 @@
 2. **Configure API Keys**
    - Copy .env.example to .env
    - Add your API keys
+   - Choose the AI provider with `AI_PROVIDER` (`openai`, `gemini`, or `mcp`)
 
 3. **Install Python Dependencies**
    ash
@@ -54,6 +55,15 @@ python src/python/cli_chat.py
 Follow the prompts to talk by typing or using your microphone. Responses are
 printed in the terminal and, when an ElevenLabs API key is configured, also
 spoken aloud.
+
+## AI Provider Configuration
+
+The assistant can use different AI backends. Set the `AI_PROVIDER` value in
+your `.env` file to choose between:
+
+- `openai` (default) – uses `OPENAI_API_KEY`
+- `gemini` – requires `GEMINI_API_KEY`
+- `mcp` – uses an OpenAI-compatible endpoint with `MCP_API_KEY` and `MCP_API_BASE`
 
 ## Project Structure
 - /src/python - AI backend and voice processing
