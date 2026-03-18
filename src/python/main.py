@@ -11,11 +11,13 @@ from datetime import datetime
 import speech_recognition as sr
 import websockets
 from dotenv import load_dotenv
-import openai
+from openai import AsyncOpenAI
 from elevenlabs import generate, set_api_key
 import threading
 import queue
 import logging
+import uuid
+from typing import Dict, Any
 
 # Load environment variables
 load_dotenv()
@@ -34,8 +36,10 @@ WEBSOCKET_PORT = int(os.getenv('WEBSOCKET_PORT', 8080))
 VOICE_ACTIVATION_KEYWORD = os.getenv('VOICE_ACTIVATION_KEYWORD', 'Hey Assistant').lower()
 TTS_VOICE_ID = os.getenv('TTS_VOICE_ID', 'default')
 
-# Set API keys
-openai.api_key = OPENAI_API_KEY
+# Initialize OpenAI async client
+openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+
+# Set ElevenLabs API key
 if ELEVENLABS_API_KEY:
     set_api_key(ELEVENLABS_API_KEY)
 
@@ -45,12 +49,13 @@ class AIAssistant:
         self.microphone = sr.Microphone()
         self.is_listening = False
         self.clients = set()
+        self.client_states = {}  # Dict to hold per-client state like conversation history
         self.message_queue = queue.Queue()
-        self.conversation_history = []
         
     async def handle_client(self, websocket, path):
         """Handle WebSocket client connections"""
         self.clients.add(websocket)
+        self.client_states[websocket] = {"conversation_history": []}
         logger.info(f"Client connected: {websocket.remote_address}")
         
         try:
@@ -67,6 +72,8 @@ class AIAssistant:
             pass
         finally:
             self.clients.remove(websocket)
+            if websocket in self.client_states:
+                del self.client_states[websocket]
             logger.info(f"Client disconnected: {websocket.remote_address}")
             
     async def process_client_message(self, data, websocket):
@@ -76,8 +83,8 @@ class AIAssistant:
         if message_type == 'text_input':
             # Process text input from UI
             text = data.get('text')
-            response = await self.get_ai_response(text)
-            await self.send_response(response)
+            response = await self.get_ai_response(text, websocket)
+            await self.send_response(response, websocket)
             
         elif message_type == 'start_listening':
             self.start_voice_recognition()
@@ -140,38 +147,49 @@ class AIAssistant:
             except sr.WaitTimeoutError:
                 pass  # Timeout, continue listening
                 
-    async def process_voice_command(self, command):
-        """Process voice command"""
+    async def process_voice_command(self, command, websocket=None):
+        """Process voice command for a specific client or broadcast if none specified"""
         logger.info(f"Processing command: {command}")
         
-        # Send listening indicator
-        await self.broadcast({
+        status_msg = {
             "type": "status",
             "status": "processing",
             "message": "Processing your request..."
-        })
+        }
         
-        # Get AI response
-        response = await self.get_ai_response(command)
-        await self.send_response(response)
+        if websocket:
+            await websocket.send(json.dumps(status_msg))
+            response = await self.get_ai_response(command, websocket)
+            await self.send_response(response, websocket)
+        else:
+            await self.broadcast(status_msg)
+            # If no specific client, we'll process it for all active clients
+            # This is a bit tricky for a shared mic, but works for broadcast
+            for client in list(self.clients):
+                response = await self.get_ai_response(command, client)
+                await self.send_response(response, client)
         
-    async def get_ai_response(self, user_input):
+    async def get_ai_response(self, user_input: str, websocket) -> Dict[str, Any]:
         """Get response from OpenAI"""
         try:
+            if websocket not in self.client_states:
+                self.client_states[websocket] = {"conversation_history": []}
+
+            history = self.client_states[websocket]["conversation_history"]
+
             # Add to conversation history
-            self.conversation_history.append({"role": "user", "content": user_input})
+            history.append({"role": "user", "content": user_input})
             
             # Keep conversation history manageable
-            if len(self.conversation_history) > 10:
-                self.conversation_history = self.conversation_history[-10:]
+            if len(history) > 10:
+                history = history[-10:]
             
             # Get response from OpenAI
-            response = await asyncio.to_thread(
-                openai.ChatCompletion.create,
+            response = await openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a friendly and helpful AI assistant with an anime personality. Be enthusiastic and supportive."},
-                    *self.conversation_history
+                    *history
                 ],
                 temperature=0.7,
                 max_tokens=150
@@ -180,7 +198,8 @@ class AIAssistant:
             ai_response = response.choices[0].message.content
             
             # Add to conversation history
-            self.conversation_history.append({"role": "assistant", "content": ai_response})
+            history.append({"role": "assistant", "content": ai_response})
+            self.client_states[websocket]["conversation_history"] = history
             
             # Analyze emotion for animation
             emotion = self.analyze_emotion(ai_response)
@@ -212,35 +231,48 @@ class AIAssistant:
         else:
             return 'neutral'
             
-    async def send_response(self, response):
-        """Send response to clients and generate TTS"""
-        # Send text and emotion to Unity for animation
-        await self.broadcast({
+    async def send_response(self, response: Dict[str, Any], websocket):
+        """Send response to a specific client and generate TTS"""
+        msg = {
             "type": "response",
             "text": response['text'],
             "emotion": response['emotion'],
             "timestamp": datetime.now().isoformat()
-        })
+        }
         
+        if websocket:
+            await websocket.send(json.dumps(msg))
+        else:
+            await self.broadcast(msg)
+
         # Generate TTS if ElevenLabs is configured
         if ELEVENLABS_API_KEY:
             try:
-                audio = generate(
+                # Use to_thread since generate is synchronous
+                audio = await asyncio.to_thread(
+                    generate,
                     text=response['text'],
                     voice=TTS_VOICE_ID,
                     model="eleven_monolingual_v1"
                 )
                 
-                # Save audio temporarily
-                audio_path = "temp_audio.mp3"
+                # Save audio to unique file to avoid race conditions
+                audio_filename = f"temp_audio_{uuid.uuid4().hex}.mp3"
+                audio_path = os.path.join(os.getcwd(), audio_filename)
+
                 with open(audio_path, 'wb') as f:
                     f.write(audio)
                     
-                # Send audio path to client
-                await self.broadcast({
+                audio_msg = {
                     "type": "audio",
                     "path": audio_path
-                })
+                }
+
+                # Send audio path to client
+                if websocket:
+                    await websocket.send(json.dumps(audio_msg))
+                else:
+                    await self.broadcast(audio_msg)
                 
             except Exception as e:
                 logger.error(f"TTS generation error: {e}")

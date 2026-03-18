@@ -20,9 +20,11 @@ def main():
     microphone = sr.Microphone()
     conversation = []
 
+    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
     def ask_openai(prompt: str) -> str:
         conversation.append({"role": "user", "content": prompt})
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=conversation,
             temperature=0.7,
