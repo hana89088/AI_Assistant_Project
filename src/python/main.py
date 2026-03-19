@@ -7,6 +7,7 @@ import asyncio
 import json
 import os
 import sys
+import tempfile
 from datetime import datetime
 import speech_recognition as sr
 import websockets
@@ -47,6 +48,7 @@ class AIAssistant:
         self.clients = set()
         self.message_queue = queue.Queue()
         self.conversation_history = []
+        self.temp_files = []
         
     async def handle_client(self, websocket, path):
         """Handle WebSocket client connections"""
@@ -212,6 +214,17 @@ class AIAssistant:
         else:
             return 'neutral'
             
+    def cleanup(self):
+        """Clean up temporary audio files"""
+        for path in self.temp_files:
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+                    logger.info(f"Removed temporary file: {path}")
+            except Exception as e:
+                logger.error(f"Error removing temporary file {path}: {e}")
+        self.temp_files = []
+
     async def send_response(self, response):
         """Send response to clients and generate TTS"""
         # Send text and emotion to Unity for animation
@@ -231,10 +244,12 @@ class AIAssistant:
                     model="eleven_monolingual_v1"
                 )
                 
-                # Save audio temporarily
-                audio_path = "temp_audio.mp3"
-                with open(audio_path, 'wb') as f:
+                # Save audio temporarily with a unique name
+                with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
                     f.write(audio)
+                    audio_path = f.name
+
+                self.temp_files.append(audio_path)
                     
                 # Send audio path to client
                 await self.broadcast({
@@ -249,16 +264,19 @@ async def main():
     """Main application entry point"""
     assistant = AIAssistant()
     
-    # Start WebSocket server
-    logger.info(f"Starting WebSocket server on port {WEBSOCKET_PORT}")
-    async with websockets.serve(assistant.handle_client, "localhost", WEBSOCKET_PORT):
-        logger.info("AI Assistant backend is running...")
-        
-        # Start voice recognition by default
-        assistant.start_voice_recognition()
-        
-        # Keep the server running
-        await asyncio.Future()
+    try:
+        # Start WebSocket server
+        logger.info(f"Starting WebSocket server on port {WEBSOCKET_PORT}")
+        async with websockets.serve(assistant.handle_client, "localhost", WEBSOCKET_PORT):
+            logger.info("AI Assistant backend is running...")
+
+            # Start voice recognition by default
+            assistant.start_voice_recognition()
+
+            # Keep the server running
+            await asyncio.Future()
+    finally:
+        assistant.cleanup()
         
 if __name__ == "__main__":
     try:
