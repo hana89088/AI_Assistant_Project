@@ -123,9 +123,10 @@ class AIAssistant:
                     logger.info(f"Recognized: {text}")
                     
                     # Check for activation keyword
-                    if VOICE_ACTIVATION_KEYWORD in text.lower():
+                    text_lower = text.lower()
+                    if VOICE_ACTIVATION_KEYWORD in text_lower:
                         # Remove activation keyword and process
-                        command = text.lower().replace(VOICE_ACTIVATION_KEYWORD, '').strip()
+                        command = text_lower.replace(VOICE_ACTIVATION_KEYWORD, '').strip()
                         if command:
                             asyncio.run_coroutine_threadsafe(
                                 self.process_voice_command(command),
