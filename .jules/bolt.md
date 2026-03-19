@@ -1,0 +1,3 @@
+## 2024-05-24 - Python Asyncio Bottleneck in Broadcast Mode
+**Learning:** In applications utilizing WebSockets, looping sequentially over connected clients to make external API calls (e.g., OpenAI or ElevenLabs) acts as a severe performance bottleneck. A single slow API request blocks processing for all subsequent clients in the sequence.
+**Action:** When handling fan-out or broadcast operations involving network I/O in Python, always utilize `asyncio.gather()` to execute operations concurrently across all targets, reducing latency from O(N) to roughly O(1) bound by the slowest single request.
