@@ -11,7 +11,7 @@ from datetime import datetime
 import speech_recognition as sr
 import websockets
 from dotenv import load_dotenv
-import openai
+from openai import AsyncOpenAI
 from elevenlabs import generate, set_api_key
 import threading
 import queue
@@ -35,7 +35,7 @@ VOICE_ACTIVATION_KEYWORD = os.getenv('VOICE_ACTIVATION_KEYWORD', 'Hey Assistant'
 TTS_VOICE_ID = os.getenv('TTS_VOICE_ID', 'default')
 
 # Set API keys
-openai.api_key = OPENAI_API_KEY
+client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 if ELEVENLABS_API_KEY:
     set_api_key(ELEVENLABS_API_KEY)
 
@@ -166,8 +166,7 @@ class AIAssistant:
                 self.conversation_history = self.conversation_history[-10:]
             
             # Get response from OpenAI
-            response = await asyncio.to_thread(
-                openai.ChatCompletion.create,
+            response = await client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a friendly and helpful AI assistant with an anime personality. Be enthusiastic and supportive."},
