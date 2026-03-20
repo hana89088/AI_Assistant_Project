@@ -45,6 +45,9 @@ if ELEVENLABS_API_KEY:
 
 class AIAssistant:
     def __init__(self):
+        # Store reference to the main asyncio event loop so worker threads
+        # can safely submit coroutines to it later.
+        self.loop = asyncio.get_event_loop()
         self.recognizer = sr.Recognizer()
         self.microphone = sr.Microphone()
         self.is_listening = False
@@ -136,7 +139,7 @@ class AIAssistant:
                         if command:
                             asyncio.run_coroutine_threadsafe(
                                 self.process_voice_command(command),
-                                asyncio.get_event_loop()
+                                self.loop
                             )
                             
                 except sr.UnknownValueError:
