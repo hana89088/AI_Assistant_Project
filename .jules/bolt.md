@@ -1,0 +1,3 @@
+## 2026-03-24 - PyAudio Stream Initialization Overhead
+**Learning:** Initializing a PyAudio microphone stream using `with self.microphone as source:` is an expensive operation that takes significant time. Placing this initialization inside a tight `while` loop for continuous audio processing (e.g., `voice_recognition_loop` in `src/python/main.py`) creates an O(N) latency bottleneck, causing a noticeable delay between recognized phrases and potentially dropping early audio frames.
+**Action:** Always place the continuous audio processing `while` loop *inside* the single `with self.microphone as source:` context manager block. This keeps the stream continuously open and avoids redundant initialization overhead.
