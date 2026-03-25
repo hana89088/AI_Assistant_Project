@@ -1,0 +1,3 @@
+## 2024-05-24 - PyAudio Stream Latency and O(N) Broadcast Bottleneck
+**Learning:** Initializing the PyAudio microphone stream (`with self.microphone as source:`) inside a continuous `while` loop introduces significant overhead (~100-500ms per iteration) because opening and closing audio streams is an expensive system operation. Additionally, broadcasting external API requests sequentially in a Python `async` context scales linearly (O(N)), which severely bottlenecks response time when multiple clients are connected.
+**Action:** Always keep the `with` block for audio streams outside of the continuous listening loop to keep the device open. Use `asyncio.gather` for independent external API calls targeting multiple clients to scale performance to O(1).
