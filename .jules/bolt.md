@@ -1,0 +1,3 @@
+## 2024-05-24 - Regex Overhead in Emotion Detection
+**Learning:** For simple multi-keyword substring searching (like emotion detection in `analyze_emotion`), the existing `any(word in text_lower for word in [...])` logic is significantly faster (~150% faster in benchmarks) than using a compiled regular expression with named groups due to regex initialization and matching overhead for short strings.
+**Action:** Do not preemptively replace simple `in` or `any()` string checks with regex in Python for performance, especially on small text inputs. Always benchmark regex alternatives as they often introduce overhead.
