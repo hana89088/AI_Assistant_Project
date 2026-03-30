@@ -1,0 +1,3 @@
+## 2024-05-24 - PyAudio Stream Initialization Overhead
+**Learning:** In the continuous voice recognition loop (`voice_recognition_loop`), repeatedly entering and exiting the `with self.microphone as source:` context manager inside a `while` loop opens and closes the underlying PyAudio stream repeatedly. This causes significant processing latency and overhead that degrades the continuous listening experience.
+**Action:** When working with microphone streams or similar continuous I/O streams in a polling or while loop, initialize the stream using its context manager outside the loop, keeping it open to maintain O(1) loop iteration latency rather than O(N) context switching overhead.
