@@ -147,6 +147,11 @@ class AIAssistant:
             except sr.WaitTimeoutError:
                 pass  # Timeout, continue listening
                 
+    async def _process_for_client(self, command, client):
+        """Helper to process a command for a single client concurrently"""
+        response = await self.get_ai_response(command, client)
+        await self.send_response(response, client)
+
     async def process_voice_command(self, command, websocket=None):
         """Process voice command for a specific client or broadcast if none specified"""
         logger.info(f"Processing command: {command}")
@@ -159,15 +164,15 @@ class AIAssistant:
         
         if websocket:
             await websocket.send(json.dumps(status_msg))
-            response = await self.get_ai_response(command, websocket)
-            await self.send_response(response, websocket)
+            await self._process_for_client(command, websocket)
         else:
             await self.broadcast(status_msg)
-            # If no specific client, we'll process it for all active clients
-            # This is a bit tricky for a shared mic, but works for broadcast
-            for client in list(self.clients):
-                response = await self.get_ai_response(command, client)
-                await self.send_response(response, client)
+            # If no specific client, we'll process it for all active clients concurrently
+            # This avoids O(N) latency bottleneck.
+            if self.clients:
+                await asyncio.gather(
+                    *[self._process_for_client(command, client) for client in list(self.clients)]
+                )
         
     async def get_ai_response(self, user_input: str, websocket) -> Dict[str, Any]:
         """Get response from OpenAI"""
@@ -231,6 +236,11 @@ class AIAssistant:
         else:
             return 'neutral'
             
+    def _save_audio_file(self, audio_path, audio_data):
+        """Helper to save audio synchronously, to be used with to_thread"""
+        with open(audio_path, 'wb') as f:
+            f.write(audio_data)
+
     async def send_response(self, response: Dict[str, Any], websocket):
         """Send response to a specific client and generate TTS"""
         msg = {
@@ -260,8 +270,7 @@ class AIAssistant:
                 audio_filename = f"temp_audio_{uuid.uuid4().hex}.mp3"
                 audio_path = os.path.join(os.getcwd(), audio_filename)
 
-                with open(audio_path, 'wb') as f:
-                    f.write(audio)
+                await asyncio.to_thread(self._save_audio_file, audio_path, audio)
                     
                 audio_msg = {
                     "type": "audio",
