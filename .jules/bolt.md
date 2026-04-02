@@ -1,0 +1,3 @@
+## 2024-05-24 - PyAudio Stream Initialization Overhead
+**Learning:** In Python, repeatedly initializing a PyAudio microphone stream (e.g., using `with microphone as source:`) inside a continuous `while` loop introduces significant latency and can cause audio stuttering. The overhead of repeatedly opening and closing the audio stream device is too high for continuous listening.
+**Action:** Always initialize the microphone stream (the `with` context block) *outside* of the `while` loop when performing continuous audio capture. Let the loop iterate over `listen` or `record` calls on the already-opened stream.
