@@ -1,0 +1,3 @@
+## 2024-05-24 - PyAudio Stream Reinitialization Overhead in Continuous Loops
+**Learning:** Initializing the PyAudio stream (`with self.microphone as source:`) inside a continuous `while` loop (e.g., `while self.is_listening:`) introduces significant overhead and latency because it repeatedly opens and closes the underlying audio device. This can cause dropped audio frames and unresponsive behavior.
+**Action:** Always initialize long-lived continuous audio streams exactly once *outside* the polling/listening loop. Keep only the necessary blocking read operations (`self.recognizer.listen(source, ...)`) inside the loop to ensure low latency and continuous processing.
