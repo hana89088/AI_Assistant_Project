@@ -1,0 +1,3 @@
+## 2024-04-02 - Broadcast Bottleneck in Websockets
+**Learning:** Sequential async operations within a loop over all connected clients (e.g., broadcasting) creates an O(N) performance bottleneck for latency. The `process_voice_command` method in `src/python/main.py` was iterating and executing `await self.get_ai_response(...)` sequentially for each client, massively blocking responses for later clients when the server scales.
+**Action:** Always identify loops iterating over clients (`self.clients`) containing `await` statements. Refactor them using `asyncio.gather(*tasks)` to process requests concurrently and scale latency to O(1) relative to connection count.
