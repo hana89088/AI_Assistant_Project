@@ -165,9 +165,17 @@ class AIAssistant:
             await self.broadcast(status_msg)
             # If no specific client, we'll process it for all active clients
             # This is a bit tricky for a shared mic, but works for broadcast
-            for client in list(self.clients):
+
+            async def process_for_client(client):
                 response = await self.get_ai_response(command, client)
                 await self.send_response(response, client)
+
+            # ⚡ Bolt Optimization: Process broadcast messages to multiple clients concurrently using asyncio.gather.
+            # 🎯 Impact: Reduces processing time from O(N) to O(1) relative to connection count.
+            # 🔬 Measurement: Observe lower total latency when broadcasting commands to multiple active clients.
+            tasks = [process_for_client(client) for client in list(self.clients)]
+            if tasks:
+                await asyncio.gather(*tasks)
         
     async def get_ai_response(self, user_input: str, websocket) -> Dict[str, Any]:
         """Get response from OpenAI"""
