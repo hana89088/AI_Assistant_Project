@@ -1,0 +1,3 @@
+## 2024-05-23 - Avoid Continuous PyAudio Stream Initialization in Loops
+**Learning:** In PyAudio, repeatedly opening and closing microphone streams within a `while` loop (like `with self.microphone as source:`) introduces significant audio latency, and causes dropped audio frames. It operates as an anti-pattern when processing continuous streams.
+**Action:** When implementing continuous audio recognition loops (like in `src/python/main.py`), ensure the PyAudio microphone stream initialization occurs once, outside the continuous processing `while` loop, wrapping it to maintain state rather than re-creating it.
