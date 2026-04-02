@@ -1,0 +1,3 @@
+## 2024-04-02 - Continuous PyAudio Stream Initialization Overhead
+**Learning:** In the Python backend, opening and closing the PyAudio stream (`with self.microphone as source:`) inside a continuous `while` loop introduces significant latency. This is because PyAudio has to repeatedly initialize and teardown the underlying audio device stream on every single iteration of the loop, which blocks and slows down the continuous listening process, potentially causing missed audio segments.
+**Action:** When implementing continuous audio listening loops (e.g., using `speech_recognition`), ensure the microphone stream is initialized once *outside* the `while` loop, and keep it open for the duration of the listening process to maintain low latency and continuous capture.
