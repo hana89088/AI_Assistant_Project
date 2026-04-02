@@ -1,0 +1,3 @@
+## 2024-04-02 - O(N) Latency Fix in WebSocket Broadcasts
+**Learning:** In asynchronous applications handling multiple WebSocket clients, performing sequential external API calls (e.g., OpenAI or TTS) for each client in a `for` loop introduces an O(N) latency bottleneck, causing significant delays for clients later in the loop. The `asyncio` event loop is blocked waiting for each external call to finish.
+**Action:** Always use `asyncio.gather` (or similar concurrency mechanisms) when broadcasting messages that require individualized external API calls or expensive async operations, ensuring O(1) latency relative to the number of connected clients.
