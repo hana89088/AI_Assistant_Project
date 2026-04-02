@@ -3,7 +3,7 @@ speechrecognition==3.10.0
 websockets==11.0.3
 langchain==0.0.350
 elevenlabs==0.2.27
-numpy==1.24.3
+numpy
 opencv-python==4.8.1.78
 pillow==10.1.0
 pydantic==2.5.0
