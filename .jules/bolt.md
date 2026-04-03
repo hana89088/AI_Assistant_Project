@@ -1,0 +1,3 @@
+## 2024-04-03 - Backend Async & Broadcast Optimizations
+**Learning:** JSON serialization inside an `asyncio.gather` list comprehension for WebSocket broadcasting (`[client.send(json.dumps(message)) for client in clients]`) scales poorly O(N) because the exact same dictionary is serialized to a string for every single client. Additionally, writing files synchronously (`with open(...)`) inside an `async def` blocks the asyncio event loop, causing latency spikes for all concurrent tasks.
+**Action:** Extract `json.dumps()` outside the broadcast loop so the payload is serialized exactly once. Always offload synchronous file I/O within async functions using `asyncio.to_thread()` to maintain event loop responsiveness.
