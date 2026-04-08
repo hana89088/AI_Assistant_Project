@@ -95,8 +95,11 @@ class AIAssistant:
     async def broadcast(self, message):
         """Broadcast message to all connected clients"""
         if self.clients:
+            # Pre-serialize JSON once to avoid O(N) serialization cost
+            message_json = json.dumps(message)
             await asyncio.gather(
-                *[client.send(json.dumps(message)) for client in self.clients]
+                *[client.send(message_json) for client in self.clients],
+                return_exceptions=True
             )
             
     def start_voice_recognition(self):
@@ -163,11 +166,17 @@ class AIAssistant:
             await self.send_response(response, websocket)
         else:
             await self.broadcast(status_msg)
-            # If no specific client, we'll process it for all active clients
-            # This is a bit tricky for a shared mic, but works for broadcast
-            for client in list(self.clients):
+
+            # Concurrently process for all clients to avoid O(N) sequential bottleneck
+            async def process_for_client(client):
                 response = await self.get_ai_response(command, client)
                 await self.send_response(response, client)
+
+            if self.clients:
+                await asyncio.gather(
+                    *[process_for_client(client) for client in self.clients],
+                    return_exceptions=True
+                )
         
     async def get_ai_response(self, user_input: str, websocket) -> Dict[str, Any]:
         """Get response from OpenAI"""
