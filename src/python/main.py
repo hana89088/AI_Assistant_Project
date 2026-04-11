@@ -69,7 +69,7 @@ class AIAssistant:
                 await self.process_client_message(data, websocket)
                 
         except websockets.exceptions.ConnectionClosed:
-            pass
+            logger.debug("WebSocket connection closed")
         finally:
             self.clients.remove(websocket)
             if websocket in self.client_states:
@@ -118,34 +118,33 @@ class AIAssistant:
         with self.microphone as source:
             self.recognizer.adjust_for_ambient_noise(source)
             
-        while self.is_listening:
-            try:
-                with self.microphone as source:
+            while self.is_listening:
+                try:
                     # Listen for audio with timeout
                     audio = self.recognizer.listen(source, timeout=1, phrase_time_limit=5)
                     
-                try:
-                    # Recognize speech using Google Speech Recognition
-                    text = self.recognizer.recognize_google(audio)
-                    logger.info(f"Recognized: {text}")
-                    
-                    # Check for activation keyword
-                    if VOICE_ACTIVATION_KEYWORD in text.lower():
-                        # Remove activation keyword and process
-                        command = text.lower().replace(VOICE_ACTIVATION_KEYWORD, '').strip()
-                        if command:
-                            asyncio.run_coroutine_threadsafe(
-                                self.process_voice_command(command),
-                                asyncio.get_event_loop()
-                            )
-                            
-                except sr.UnknownValueError:
-                    pass  # Could not understand audio
-                except sr.RequestError as e:
-                    logger.error(f"Speech recognition error: {e}")
-                    
-            except sr.WaitTimeoutError:
-                pass  # Timeout, continue listening
+                    try:
+                        # Recognize speech using Google Speech Recognition
+                        text = self.recognizer.recognize_google(audio)
+                        logger.info(f"Recognized: {text}")
+
+                        # Check for activation keyword
+                        if VOICE_ACTIVATION_KEYWORD in text.lower():
+                            # Remove activation keyword and process
+                            command = text.lower().replace(VOICE_ACTIVATION_KEYWORD, '').strip()
+                            if command:
+                                asyncio.run_coroutine_threadsafe(
+                                    self.process_voice_command(command),
+                                    asyncio.get_event_loop()
+                                )
+
+                    except sr.UnknownValueError:
+                        logger.debug("Could not understand audio")
+                    except sr.RequestError as e:
+                        logger.error(f"Speech recognition error: {e}")
+
+                except sr.WaitTimeoutError:
+                    logger.debug("Wait timeout, continue listening")
                 
     async def process_voice_command(self, command, websocket=None):
         """Process voice command for a specific client or broadcast if none specified"""
