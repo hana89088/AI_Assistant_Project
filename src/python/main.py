@@ -95,8 +95,11 @@ class AIAssistant:
     async def broadcast(self, message):
         """Broadcast message to all connected clients"""
         if self.clients:
+            # ⚡ Bolt: Optimize performance by serializing JSON exactly once before broadcasting
+            # instead of inside the list comprehension. Reduces serialization overhead from O(N) to O(1).
+            serialized_msg = json.dumps(message)
             await asyncio.gather(
-                *[client.send(json.dumps(message)) for client in self.clients]
+                *[client.send(serialized_msg) for client in self.clients]
             )
             
     def start_voice_recognition(self):
