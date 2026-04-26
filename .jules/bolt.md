@@ -1,0 +1,3 @@
+## 2024-05-24 - Extracting JSON serialization from broadcast loops
+**Learning:** In WebSocket broadcast loops using `asyncio.gather`, inline operations like `json.dumps(message)` are executed per-client before the coroutines are gathered. This transforms an otherwise O(1) network broadcasting step into an O(N) CPU bottleneck when handling many concurrent connections.
+**Action:** Always extract static serializations (like JSON encoding) outside of broadcast comprehensions or loops so the CPU cost is incurred exactly once.
