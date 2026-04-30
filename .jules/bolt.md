@@ -1,0 +1,3 @@
+## 2024-05-24 - Python Backend WebSocket Broadcast JSON Serialization
+**Learning:** Found a performance bottleneck where JSON messages were being serialized iteratively inside an asyncio.gather list comprehension during WebSocket broadcasts. This caused O(N) serialization overhead relative to connection count, consuming unnecessary CPU cycles on the main thread for identical message payloads.
+**Action:** Extracted json.dumps(message) outside the broadcast loop to compute the string payload exactly once (O(1)) before fanning out the sends, ensuring broadcast scaling remains purely I/O bound.
