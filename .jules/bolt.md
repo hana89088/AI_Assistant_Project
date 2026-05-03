@@ -1,0 +1,3 @@
+## 2024-05-03 - JSON Serialization Optimization in Broadcast Loop
+**Learning:** In the Python backend's WebSocket broadcasting, performing JSON serialization inside a list comprehension causes O(N) serialization operations relative to the number of connected clients, creating a performance bottleneck for broadcasts.
+**Action:** Always extract JSON serialization out of broadcast loops to compute it exactly once before iterating over clients.
