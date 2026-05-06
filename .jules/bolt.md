@@ -1,0 +1,3 @@
+## 2026-05-06 - WebSocket Broadcast Fast-Fail Vulnerability and Serialization Overhead
+**Learning:** By default, `asyncio.gather` fast-fails when any of its awaitables raises an exception. In a WebSocket broadcast scenario, if one client disconnects concurrently and its `send` task raises an exception, the entire broadcast task fails immediately, preventing other connected clients from receiving the message. Additionally, `json.dumps` inside a list comprehension creates O(N) serialization overhead.
+**Action:** When broadcasting to multiple clients using `asyncio.gather`, always use `return_exceptions=True` to ensure fault tolerance. Additionally, extract redundant operations like `json.dumps(message)` outside the loop to optimize for O(1) processing instead of O(N).
