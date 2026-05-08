@@ -1,0 +1,3 @@
+## 2024-05-08 - O(N) Performance Bottlenecks in WebSocket Broadcasts
+**Learning:** In the Python backend, iterating over `self.clients` to perform synchronous operations (like `json.dumps()`) or sequential async API calls (like `await self.get_ai_response`) introduces an O(N) performance bottleneck that scales poorly with connection count.
+**Action:** Always extract invariant computations (like JSON serialization) outside of broadcast loops to compute them exactly once. For per-client API calls or I/O within a broadcast, use `asyncio.gather` to process them concurrently, maintaining O(1) latency relative to the number of connected clients. Use `return_exceptions=True` to prevent one client failure from breaking the broadcast.
