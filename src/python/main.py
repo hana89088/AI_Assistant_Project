@@ -95,8 +95,12 @@ class AIAssistant:
     async def broadcast(self, message):
         """Broadcast message to all connected clients"""
         if self.clients:
+            # ⚡ Bolt Optimization: Serialize JSON exactly once instead of O(N) times per broadcast
+            # and use return_exceptions=True to prevent one client disconnect failing the entire broadcast
+            serialized_msg = json.dumps(message)
             await asyncio.gather(
-                *[client.send(json.dumps(message)) for client in self.clients]
+                *[client.send(serialized_msg) for client in self.clients],
+                return_exceptions=True
             )
             
     def start_voice_recognition(self):
