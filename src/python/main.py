@@ -95,8 +95,12 @@ class AIAssistant:
     async def broadcast(self, message):
         """Broadcast message to all connected clients"""
         if self.clients:
+            # Bolt Optimization: Hoist json.dumps to avoid O(N) redundant serializations
+            encoded_message = json.dumps(message)
+            # Bolt Optimization: Use gather to execute concurrent sends
             await asyncio.gather(
-                *[client.send(json.dumps(message)) for client in self.clients]
+                *[client.send(encoded_message) for client in self.clients],
+                return_exceptions=True
             )
             
     def start_voice_recognition(self):
@@ -165,9 +169,18 @@ class AIAssistant:
             await self.broadcast(status_msg)
             # If no specific client, we'll process it for all active clients
             # This is a bit tricky for a shared mic, but works for broadcast
-            for client in list(self.clients):
-                response = await self.get_ai_response(command, client)
-                await self.send_response(response, client)
+
+            async def process_for_client(c):
+                response = await self.get_ai_response(command, c)
+                await self.send_response(response, c)
+
+            if self.clients:
+                # Bolt Optimization: Replace sequential await in for loop with concurrent gather.
+                # Changes latency from O(N) to O(1) relative to connection count.
+                await asyncio.gather(
+                    *[process_for_client(client) for client in list(self.clients)],
+                    return_exceptions=True
+                )
         
     async def get_ai_response(self, user_input: str, websocket) -> Dict[str, Any]:
         """Get response from OpenAI"""
