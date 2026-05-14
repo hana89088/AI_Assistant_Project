@@ -260,8 +260,13 @@ class AIAssistant:
                 audio_filename = f"temp_audio_{uuid.uuid4().hex}.mp3"
                 audio_path = os.path.join(os.getcwd(), audio_filename)
 
-                with open(audio_path, 'wb') as f:
-                    f.write(audio)
+                # ⚡ Bolt: Offload blocking file I/O to a separate thread
+                # This prevents event loop lag (~90ms for large files) during TTS audio saving
+                def write_audio_file():
+                    with open(audio_path, 'wb') as f:
+                        f.write(audio)
+
+                await asyncio.to_thread(write_audio_file)
                     
                 audio_msg = {
                     "type": "audio",
