@@ -1,0 +1,3 @@
+## 2024-05-24 - Redundant JSON Serialization in Broadcast Loop
+**Learning:** In the Python backend, iterating over active WebSocket clients and calling `json.dumps(message)` for each client within an `asyncio.gather` list comprehension creates an O(N) serialization overhead. JSON serialization is synchronous and blocks the event loop; doing it N times instead of once significantly degrades broadcast performance under high concurrent connections.
+**Action:** Always extract `json.dumps()` operations outside of broadcast loops and pass the pre-serialized string to the client send methods. Use `return_exceptions=True` in `asyncio.gather` to prevent one client's error from aborting the entire broadcast.
