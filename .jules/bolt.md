@@ -1,0 +1,3 @@
+## 2024-05-31 - Optimize WebSocket broadcast JSON serialization overhead
+**Learning:** In the Python backend (`src/python/main.py`), broadcasting to WebSocket clients using `asyncio.gather` with a list comprehension calling `json.dumps` for every client causes O(N) serialization overhead, unnecessarily using CPU cycles and blocking the event loop.
+**Action:** Extract JSON serialization out of the broadcast loop so it's computed exactly once, changing serialization complexity to O(1). Additionally, use `return_exceptions=True` in `asyncio.gather` to prevent one client's disconnection error from propagating and failing the entire broadcast.
