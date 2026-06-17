@@ -1,0 +1,3 @@
+## 2024-06-17 - O(N) JSON serialization in broadcast loop
+**Learning:** Found that `json.dumps()` was being called N times for N connected clients within the `asyncio.gather` broadcast comprehension, introducing unnecessary O(N) serialization overhead on the main thread for broadcasts.
+**Action:** Extract JSON serialization outside the loop so it's computed exactly once, turning it into an O(1) operation relative to connection count. Additionally, always use `return_exceptions=True` with `asyncio.gather` for broadcasts to prevent a single closed connection from raising an error that breaks the entire broadcast awaitable.
