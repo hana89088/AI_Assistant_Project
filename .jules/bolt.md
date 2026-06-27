@@ -1,0 +1,3 @@
+## 2026-06-27 - Extracting JSON Serialization from Broadcast Loops
+**Learning:** In WebSocket broadcast functions, calling `json.dumps()` within a list comprehension or loop for each client introduces redundant O(N) serialization overhead, which scales poorly with the number of connections. Additionally, failing to handle exceptions in `asyncio.gather` can cause a single disconnected client to fail the entire broadcast.
+**Action:** Always extract JSON serialization out of broadcast loops to compute it exactly once, and use `return_exceptions=True` with `asyncio.gather` to isolate per-client delivery failures.
