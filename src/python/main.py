@@ -260,8 +260,12 @@ class AIAssistant:
                 audio_filename = f"temp_audio_{uuid.uuid4().hex}.mp3"
                 audio_path = os.path.join(os.getcwd(), audio_filename)
 
-                with open(audio_path, 'wb') as f:
-                    f.write(audio)
+                def _write_audio_file():
+                    with open(audio_path, 'wb') as f:
+                        f.write(audio)
+
+                # Offload blocking file I/O to avoid event loop lag
+                await asyncio.to_thread(_write_audio_file)
                     
                 audio_msg = {
                     "type": "audio",
